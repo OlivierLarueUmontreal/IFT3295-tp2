@@ -1,0 +1,1 @@
+# Bibliotheque standard uniquement : aucune dependance a installer.
