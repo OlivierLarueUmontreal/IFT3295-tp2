@@ -51,8 +51,68 @@ def alignement_global(
         Avec BLOSUM62, ``alignement_global("AC", "A", matrice)`` a le score
         -7 : la colonne A/A vaut 4 et le gap de longueur 1 coute 11.
     """
-    raise NotImplementedError  # TODO
+    m: int = len(seq1)
+    n: int = len(seq2)
 
+    # inspirée notes de cours (2.1-Alignement-Prog-Dyn)
+    # E(i,j) : meilleur alignement qui se termine par (-, wj)
+    # F(i,j) : meilleur alignement qui se termine par (vi, -)
+    # G(i,j) : meilleur alignement qui se termine par (vi, wj)
+    # V(i,j) = max[E(i,j), F(i,j), G(i,j)].
+    # init tout a -infini
+    V: list[list[float]] = [[float("-inf")] * (n + 1) for _ in range(m + 1)]
+    E: list[list[float]] = [[float("-inf")] * (n + 1) for _ in range(m + 1)]
+    F: list[list[float]] = [[float("-inf")] * (n + 1) for _ in range(m + 1)]
+    G: list[list[float]] = [[float("-inf")] * (n + 1) for _ in range(m + 1)]
+
+    V[0][0] = 0
+    for i in range(m + 1):
+        for j in range(n + 1):
+            if i == 0 and j == 0: continue
+
+            if i > 0 and j > 0:
+                G[i][j] = V[i - 1][j - 1] + matrice[(seq1[i - 1], seq2[j - 1])]
+
+            if j > 0:
+                E[i][j] = max(E[i][j - 1], V[i][j - 1] - OUVERTURE) - EXTENSION
+
+            if i > 0:
+                F[i][j] = max(F[i - 1][j], V[i - 1][j] - OUVERTURE) - EXTENSION
+
+            V[i][j] = max(E[i][j], F[i][j], G[i][j])
+
+   
+   # backtracking, on part de la fin en bas a droite du tableau et on remonte (V[m][n])
+    ligne1: list[str] = []
+    ligne2: list[str] = []
+    i, j = m, n # pour garder les valeurs a m et n lors du retour
+
+    while i > 0 or j > 0:
+        if V[i][j] == G[i][j]:
+            # G(i,j) = V(i-1,j-1) + delta : colonne (vi, wj)
+            ligne1.append(seq1[i - 1])
+            ligne2.append(seq2[j - 1])
+            i = i - 1
+            j = j - 1
+        elif V[i][j] == F[i][j]:
+            # Il y a un gap, on reste dans cette table pour tout la longueur du Gap
+            prolonger_gap: bool = True
+            while prolonger_gap:
+                ligne1.append(seq1[i - 1])
+                ligne2.append("-")
+                prolonger_gap = F[i][j] == F[i - 1][j] - EXTENSION
+                i -= 1
+        else:
+            # On continue dans le Gap
+            prolonger_gap = True
+            while prolonger_gap:
+                ligne1.append("-")
+                ligne2.append(seq2[j - 1])
+                prolonger_gap = E[i][j] == E[i][j - 1] - EXTENSION
+                j -= 1
+
+    # Les colonnes ont ete construites de la fin vers le debut.
+    return int(V[m][n]), "".join(reversed(ligne1)), "".join(reversed(ligne2))
 
 def matrice_similarite(
     sequences: list[str], matrice: dict[tuple[str, str], int]
@@ -68,4 +128,12 @@ def matrice_similarite(
         de ``alignement_global(sequences[i], sequences[j], matrice)``.
         La diagonale contient des zeros.
     """
-    raise NotImplementedError  # TODO: remplir la matrice
+
+    nombre: int = len(sequences)
+    similarite: list[list[int]] = [[0] * nombre for _ in range(nombre)]
+    for i in range(nombre):
+        for j in range(nombre):
+            if i != j:
+                similarite[i][j] = alignement_global(sequences[i], sequences[j], matrice)[0]
+
+    return similarite
