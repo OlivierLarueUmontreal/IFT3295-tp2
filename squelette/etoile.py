@@ -31,8 +31,17 @@ def sequence_centrale(matrice: list[list[int]]) -> int:
         int: Indice de la sequence dont la somme des scores avec les autres
         est maximale. En cas d'egalite, le plus petit indice.
     """
-    raise NotImplementedError  # TODO
+    scores = []
+    max_score = 0
+    index = 1 # une seul seq, elle est la seq etoile
+    for i in range(len(matrice): 
+        row = matrice[i] # chq row est une seq
+        score = sum(row)
+        if score > max_score: 
+            max_score = score # cas d'égalité, on commence par l'indice le plus petit
+            index = i+1
 
+    return index
 
 def alignement_etoile(
     sequences: list[str], matrice: dict[tuple[str, str], int]
