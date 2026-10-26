@@ -34,7 +34,7 @@ def sequence_centrale(matrice: list[list[int]]) -> int:
     scores = []
     max_score = 0
     index = 1 # une seul seq, elle est la seq etoile
-    for i in range(len(matrice): 
+    for i in range(len(matrice)): 
         row = matrice[i] # chq row est une seq
         score = sum(row)
         if score > max_score: 
