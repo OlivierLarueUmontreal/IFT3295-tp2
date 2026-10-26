@@ -1,3 +1,4 @@
+import alignement
 """IFT3295 - TP2 - Alignement par arbre etoile, score SP et consensus (Q2 a Q7).
 
 Ce fichier est A COMPLETER. Regles:
@@ -32,16 +33,16 @@ def sequence_centrale(matrice: list[list[int]]) -> int:
         est maximale. En cas d'egalite, le plus petit indice.
     """
     scores = []
-    max_score = 0
-    index = 1 # une seul seq, elle est la seq etoile
+    max_score = float("-inf")
+    index = 0 # une seul seq, elle est la seq etoile
     for i in range(len(matrice)): 
         row = matrice[i] # chq row est une seq
         score = sum(row)
         if score > max_score: 
             max_score = score # cas d'égalité, on commence par l'indice le plus petit
-            index = i+1
+            index = i
 
-    return index
+    return index #attention le nom de la seq serait donc i + 1
 
 def alignement_etoile(
     sequences: list[str], matrice: dict[tuple[str, str], int]
@@ -64,7 +65,62 @@ def alignement_etoile(
         ``sequences``, gaps ``-`` inclus. Toutes les lignes ont la meme
         longueur. Retirer les gaps d'une ligne redonne la sequence d'origine.
     """
-    raise NotImplementedError  # TODO: fusion des alignements avec le centre
+    
+    # ceci est le nom de la seq 
+    index_centrale = sequence_centrale(
+        alignement.matrice_similarite(sequences, matrice))
+
+    centre = sequences[index_centrale]
+    new_centre = ""
+    tmp_centre = centre # tmp
+    aln_mult = []
+    for i in range(len(sequences)):
+        autre = sequences[i]
+        
+        aln = ""
+        if i == index_centrale: 
+            aln_mult.append(tmp_centre)
+            continue
+        else : 
+            res = alignement.alignement_global(centre, autre, matrice) # centre reste tjrs le même
+            aln = res[2]
+            new_centre = res[1]
+        
+        # fusioner avec l'alignement 
+        # comparer les centres : 
+        # si centre == _ and new_centre != _ : cor_centre += _; cor_aln += _;
+        # si centre != _ and new_centre == _ : cor_centre += _; for i in aln_mult += 1;
+        ci = 0 #cor centre index
+        ni = 0 # new centre index        
+
+        cor_centre = ""
+        cor_aln = aln
+        while ci < len(tmp_centre) or ni < len(new_centre): 
+            c = tmp_centre[ci] if ci < len(tmp_centre) else None
+            n = new_centre[ni] if ni < len(new_centre) else None
+            pos = len(cor_centre) # pos de centre qu'on construit
+            if c == "-" and n != "-" : 
+                cor_centre += "-"
+                cor_aln = cor_aln[:pos] + "-" + cor_aln[pos:]
+                ci += 1
+
+            elif c != "-" and n == "-" :
+                cor_centre += "-"
+                for iseq in range(len(aln_mult)):
+                    seq = aln_mult[iseq] 
+                    aln_mult[iseq] = seq[:pos] + "-" + seq[pos:]
+                ni += 1
+
+            else: 
+                cor_centre += c
+                ci += 1
+                ni +=1
+        tmp_centre = cor_centre #corriger le centre
+        aln_mult.append(cor_aln)
+    
+    aln_mult[index_centrale] = tmp_centre
+
+    return aln_mult
 
 
 def score_sp(alignement: list[str], matrice: dict[tuple[str, str], int]) -> int:
