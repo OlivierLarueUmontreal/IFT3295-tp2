@@ -142,6 +142,64 @@ def score_sp(alignement: list[str], matrice: dict[tuple[str, str], int]) -> int:
     Returns:
         int: Score SP.
     """
+    def kgaps(k):
+        return -(OUVERTURE + k * EXTENSION)
+    # on vx faire des combinaisons de paires, garder la somme
+    scores = []
+
+    for i in range(len(alignement)):
+        for u in range(len(alignement)):
+            if i == u: continue
+            if i < u : continue
+            seq1 = alignement[i]
+            seq2 = alignement[u]
+
+            seqind = 0
+            while seqind < len(seq1):
+            # enlever les matching gaps
+                if seq1[seqind] == "-" and seq2[seqind] == "-":
+                    seq1 = seq1[:seqind] + seq1[seqind+1:]
+                    seq2 = seq2[:seqind] + seq2[seqind+1:]
+                else : seqind += 1
+            
+            score = 0
+            gap = False
+            gap_count = 0 # accumuler
+            for seqind in range(len(seq1)):
+                if seq1[seqind] != "-" and seq2[seqind] != "-":
+                    if gap: 
+                        score += kgaps(gap_count)
+                        gap_count = 0
+                        gap = False
+                    score += matrice[seq1[seqind],seq2[seqind]]
+                if seq1[seqind] == "-" or seq2[seqind] == "-":
+                    # si on avait un trou ouvert
+                    if gap == False:
+                        gap = True
+                        gap_count += 1
+                    # verifier le gap continue est dans le même strand, sinon recommencer
+                    else:
+                        # A-
+                        # -S 
+                        if (seq1[seqind] == "-" and seq1[seqind-1] == "-") or (seq2[seqind] == "-" and seq2[seqind-1] == "-"): 
+                            gap_count += 1
+                            continue
+                        else: 
+                            # changer de brin 
+                            score += kgaps(gap_count)
+                            gap_count = 1
+            if gap: score += kgaps(gap_count)
+                            
+            scores.append(score)
+    return(sum(scores))
+
+                            
+
+
+
+                
+
+                
     raise NotImplementedError  # TODO: somme des paires
 
 
