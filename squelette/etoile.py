@@ -193,15 +193,6 @@ def score_sp(alignement: list[str], matrice: dict[tuple[str, str], int]) -> int:
             scores.append(score)
     return(sum(scores))
 
-                            
-
-
-
-                
-
-                
-    raise NotImplementedError  # TODO: somme des paires
-
 
 def sequence_consensus(alignement: list[str]) -> str:
     """Construit la sequence consensus d'un alignement multiple.
@@ -216,7 +207,31 @@ def sequence_consensus(alignement: list[str]) -> str:
         l'ordre de la matrice BLOSUM62 (ligne d'en-tete de
         ``BLOSUM62.txt``). Une colonne sans acide amine donne ``-``.
     """
-    raise NotImplementedError  # TODO: majorite par colonne
+    def get_aa_freq(aa_table):
+        # freq = naa/N
+        if len(aa_table) == aa_table.count("-"): return "-"
+
+        N = len("".join(("-").split("".join(aa_table))))
+        max_freq = 0
+        max_aa = ""
+        for aa in ACIDES_AMINES:
+            f = aa_table.count(aa)/N
+            if f > max_freq:
+                max_freq = f
+                max_aa = aa
+        return max_aa
+
+    col_dict = {}
+    seq_consensus = ""
+    for i in range(len(alignement[0])): # longeur de tt sequence
+        col_dict[i] = []
+        for seq in alignement:
+            col = col_dict[i]
+            col.append(seq[i])
+            col_dict[i] = col
+        seq_consensus += get_aa_freq(col_dict[i])
+
+    return seq_consensus
 
 
 def sequence_modifiee(
@@ -240,7 +255,42 @@ def sequence_modifiee(
     Returns:
         str: S*', sans gap, de la meme longueur que la sequence centrale.
     """
-    raise NotImplementedError  # TODO: meilleur acide amine par colonne
+    S_start_prime = alignement[centre]
+    col_dict = {}
+
+    for i in range(len(S_start_prime)): # longeur de tt sequence
+        col_dict[i] = []
+        for seq in alignement:
+            col = col_dict[i]
+            col.append(seq[i])
+            col_dict[i] = col
+
+        x_max = ""
+        max_score = float("-inf")        
+        # determiner l'aa à l'index i de S *'
+        for x in col_dict[i]: #tt aa de la colonne
+            if x == "-": continue # skip
+
+            x_score = 0
+            for aa in ACIDES_AMINES:
+                x_score += matrice[x,aa]
+            # la somme est plus grande que le dernier x evalué?
+            if x_score > max_score :
+                max_score = x_score
+                x_max = x
+        
+        # remplacer par le nouveau x
+        S_start_prime = S_start_prime[:i] + x_max + S_start_prime[i+1:] 
+    S_start_prime = S_start_prime.replace("-","")
+    print(alignement[centre])
+    
+    print(S_start_prime.replace("-",""))
+    print(len(alignement[centre]))
+    
+    print(len(S_start_prime.replace("-","")))
+
+    return S_start_prime.replace("-","")
+
 
 
 def realigner_sur_centre(
