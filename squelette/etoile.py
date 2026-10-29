@@ -211,7 +211,7 @@ def sequence_consensus(alignement: list[str]) -> str:
         # freq = naa/N
         if len(aa_table) == aa_table.count("-"): return "-"
 
-        N = len("".join(("-").split("".join(aa_table))))
+        N = len(aa_table) - aa_table.count("-")
         max_freq = 0
         max_aa = ""
         for aa in ACIDES_AMINES:
@@ -259,6 +259,7 @@ def sequence_modifiee(
     col_dict = {}
 
     for i in range(len(S_start_prime)): # longeur de tt sequence
+        if alignement[centre][i] == "-": continue
         col_dict[i] = []
         for seq in alignement:
             col = col_dict[i]
@@ -268,11 +269,11 @@ def sequence_modifiee(
         x_max = ""
         max_score = float("-inf")        
         # determiner l'aa à l'index i de S *'
-        for x in col_dict[i]: #tt aa de la colonne
-            if x == "-": continue # skip
-
+        for x in ACIDES_AMINES: #tt aa de la colonne
+            
             x_score = 0
-            for aa in ACIDES_AMINES:
+            for aa in col_dict[i]:
+                if aa == "-": continue # skip
                 x_score += matrice[x,aa]
             # la somme est plus grande que le dernier x evalué?
             if x_score > max_score :
@@ -282,16 +283,8 @@ def sequence_modifiee(
         # remplacer par le nouveau x
         S_start_prime = S_start_prime[:i] + x_max + S_start_prime[i+1:] 
     S_start_prime = S_start_prime.replace("-","")
-    print(alignement[centre])
-    
-    print(S_start_prime.replace("-",""))
-    print(len(alignement[centre]))
-    
-    print(len(S_start_prime.replace("-","")))
 
     return S_start_prime.replace("-","")
-
-
 
 def realigner_sur_centre(
     centre_impose: str, sequences: list[str], matrice: dict[tuple[str, str], int]
@@ -312,4 +305,65 @@ def realigner_sur_centre(
         list[str]: Une ligne par sequence de ``sequences``, dans le meme
         ordre, gaps ``-`` inclus. Toutes les lignes ont la meme longueur.
     """
-    raise NotImplementedError  # TODO: etoile avec centre impose, puis retrait
+    
+    centre = centre_impose
+    new_centre = ""
+    tmp_centre = centre # tmp
+    aln_mult = []
+    for i in range(len(sequences)):
+        autre = sequences[i]
+        
+        res = alignement.alignement_global(centre, autre, matrice) 
+        aln = res[2]
+        new_centre = res[1]
+        
+        # fusioner avec l'alignement 
+        # comparer les centres : 
+        # si centre == _ and new_centre != _ : cor_centre += _; cor_aln += _;
+        # si centre != _ and new_centre == _ : cor_centre += _; for i in aln_mult += 1;
+        ci = 0 #cor centre index
+        ni = 0 # new centre index        
+
+        cor_centre = ""
+        cor_aln = aln
+        while ci < len(tmp_centre) or ni < len(new_centre): 
+            c = tmp_centre[ci] if ci < len(tmp_centre) else None
+            n = new_centre[ni] if ni < len(new_centre) else None
+            pos = len(cor_centre) # pos de centre qu'on construit
+            if c == "-" and n != "-" : 
+                cor_centre += "-"
+                cor_aln = cor_aln[:pos] + "-" + cor_aln[pos:]
+                ci += 1
+
+            elif c != "-" and n == "-" :
+                cor_centre += "-"
+                for iseq in range(len(aln_mult)):
+                    seq = aln_mult[iseq] 
+                    aln_mult[iseq] = seq[:pos] + "-" + seq[pos:]
+                ni += 1
+
+            else: 
+                cor_centre += c
+                ci += 1
+                ni +=1
+        tmp_centre = cor_centre #corriger le centre
+        aln_mult.append(cor_aln)
+
+    col_dict = {}
+    index_vides = [] 
+    for i in range(len(cor_centre)): # longeur de tt sequence
+        col_dict[i] = []
+        for seq in aln_mult:
+            col = col_dict[i]
+            col.append(seq[i])
+            col_dict[i] = col
+        if len(col_dict[i]) == col_dict[i].count("-"): index_vides.append(i)
+    cor_aln = []
+    for seq in aln_mult:
+        n_seq = ""
+        for i in range(len(cor_centre)):
+            if i in index_vides: continue
+            n_seq += seq[i]
+        cor_aln.append(n_seq)
+
+    return cor_aln
